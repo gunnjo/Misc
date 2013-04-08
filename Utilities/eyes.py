@@ -1,4 +1,6 @@
+#!/usr/bin/env python
 import sys
+import os
 import cv
 import cv2
 import numpy as np
@@ -6,10 +8,8 @@ import numpy as np
 imageCount = 0
 faceCount = 0
 eyeCount = 0
-#faceFile = "/home/gunnjo/NetSrc/opencv/data/haarcascades/haarcascade_frontalface_alt.xml"
 faceFile = "/home/gunnjo/NetSrc/opencv/data/haarcascades/haarcascade_frontalface_default.xml"
 eyeFile = "/home/gunnjo/NetSrc/opencv/data/haarcascades/haarcascade_eye.xml"
-eyeFile = "/home/gunnjo/NetSrc/opencv/data/haarcascades/haarcascade_eye_tree_eyeglasses.xml"
 
 def Load():
 	faceCascade = cv2.CascadeClassifier(faceFile)
@@ -74,10 +74,16 @@ def GoAway():
 	exit()
 
 if __name__ == "__main__":
+	useDirectory=0
 	if len(sys.argv)==1:
 		capture = cv2.VideoCapture( 0 )
 	elif len(sys.argv)>1 and sys.argv[1].isdigit():
 		capture = cv2.VideoCapture( int(sys.argv[1]) )
+	elif len(sys.argv)>1 and os.path.isdir(sys.argv[1]):
+		useDirectory = 1
+		dirPath = sys.argv[1]
+		files = os.listdir(dirPath)
+		capture = None
 	elif len(sys.argv)>1:
 		capture = cv2.VideoCapture( sys.argv[1] )
 
@@ -91,12 +97,21 @@ if __name__ == "__main__":
 	faceCascade, eyeCascade = Load()
 	endit = 1
 	while endit:
-		(ret, image) = capture.read()
+		if not useDirectory:
+			(ret, image) = capture.read()
+		else:
+			ret = True
+			try:
+				f = files.pop()
+				image = cv2.imread(os.path.join(dirPath, f))
+				if image == None: continue
+			except:
+				ret = False
 		if ( ret):
 			imageCount+=1
 			image = DetectEyes(image, faceCascade, eyeCascade)
 			cv2.imshow("w1", image)
-#			if (cv2.waitKey(10000) == 27):
-#				endit = 0
+			if (cv2.waitKey(1) == 27):
+				endit = 0
 		else : endit = 0
 	GoAway()
