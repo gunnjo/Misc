@@ -1,6 +1,7 @@
 #!/usr/bin/python
 from math import sin,cos,sqrt,pi
 import sys, subprocess
+import os.path
 import numpy as np
 import cv2
 import cv2.cv as cv
@@ -9,6 +10,7 @@ import zbar
 global mem
 
 def ocrContour(image):
+    lines = []
     wdir = "."
     base = "%d-%d" %image.shape
     ifile = "%s/image_%s.tif" %(wdir,base)
@@ -18,7 +20,8 @@ def ocrContour(image):
     cv2.imwrite(ifile, image)
     print cmd
     subprocess.call([cmd], shell=True, stderr=subprocess.PIPE)
-    lines = [l.strip() for l in open(otext).readlines()]
+    if ( os.path.exists( otext) is True ):
+	lines.append( [l.strip() for l in open(otext).readlines()])
     image = cv2.flip(image,-1)
     ifile = "%s/image_flip_%s.tif" %(wdir,base)
     tbase = "%s/text_flip_%s" %(wdir, base)
@@ -27,7 +30,8 @@ def ocrContour(image):
     cmd = "tesseract %s %s" % (ifile, tbase)
     subprocess.call([cmd], shell=True, stderr=subprocess.PIPE)
     print cmd
-    lines = [l.strip() for l in open(otext).readlines()]
+    if ( os.path.exists( otext) is True ):
+        lines.append([l.strip() for l in open(otext).readlines()])
     if (lines):
         return lines[0]
     else:
@@ -68,10 +72,17 @@ def filterContour( i, contours, hierarchy):
     return(approx)
 
 def scaleshow( win, image):
-    i = cv2.resize( image, (int(image.shape[0]*.25), int(image.shape[1]*.25)), 0, 0, cv2.INTER_NEAREST)
+    width = image.shape[1]
+    height = image.shape[0]
+    if ( width > 800 or height > 600 ):
+       width = 800
+       height = 600
+    i = cv2.resize( image, (width, height), 0, 0, cv2.INTER_NEAREST)
     cv2.imshow( win, i )
 
 def doalgo( image):
+    #hsv = cv2.cvtColor( image, cv2.COLOR_BGR2HSV)
+    #gray = hsv[:,:,2]
     gray = image[:,:,1]    
     ret, edges = cv2.threshold(gray, 170, 255,0)
     contours, hierarchy = cv2.findContours( edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
