@@ -68,8 +68,8 @@ def filterContour( i, contours, hierarchy):
     area = cv2.contourArea(approx)
     convex = cv2.isContourConvex(approx)
     print "filtering ", approx, " length: ", len(approx), " area: ", area, " convex: ", convex
-#    if ( len(approx) != 4  ): #only square objects
-#        return None
+    if ( len(approx) != 4  ): #only square objects
+        return None
     if ( cv2.isContourConvex(approx) is False ): #That are closed
         return None
     if area < ((minArea*ppi*.9)): #only large enough objects

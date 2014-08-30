@@ -43,23 +43,26 @@ def processContour( contour, gray, contours):
     print "Rotated:", rr
     rmat = cv2.getRotationMatrix2D( rr[0], rr[2], 1.0)
     rgray = gray#[rr[0][1]-(rr[1][1]/2):rr[0][1]+(rr[1][1]/2),rr[0][0]-(rr[1][0]/2):rr[0][0]+(rr[1][0]/2)]
-    cv2.drawContours(image, contour, -1, 150, 3)        
+#    cv2.drawContours(gray, contour, -1, (128,128,128), 3)        
     rimg = cv2.warpAffine(rgray, rmat, rgray.shape[0:2], flags=cv2.INTER_CUBIC)
     rimg = rimg[rr[0][1]-(rr[1][1]/2):rr[0][1]+(rr[1][1]/2),rr[0][0]-(rr[1][0]/2):rr[0][0]+(rr[1][0]/2)]
-    cv2.imshow("rotated", rimg)
-    scanner = zbar.ImageScanner()
-    scanimg = zbar.Image(rimg.shape[1], rimg.shape[0], 'Y800', rimg.tostring() )
-    scanner.scan(scanimg)
-    for code in scanimg:
-        print "code:", code.type, " contents:", '"%s"' % code.data
-    ocrContour(rimg)
+    if ( (rimg.shape[0] is 0) or (rimg.shape[1] is 0) ):
+        print "empty shape"
+    else:
+        cv2.imshow("rotated", rimg)
+        scanner = zbar.ImageScanner()
+        scanimg = zbar.Image(rimg.shape[1], rimg.shape[0], 'Y800', rimg.tostring() )
+        scanner.scan(scanimg)
+        for code in scanimg:
+            print "code:", code.type, " contents:", '"%s"' % code.data
+        ocrContour(rimg)
     return None
 
 def filterContour( i, contours, hierarchy):
     minArea = 2.75*1.25 # minimum area in inches
     ppi = 200.
-    if hierarchy[i][3] != -1 : #only parent objects
-        return None
+#    if hierarchy[i][3] != -1 : #only parent objects
+#        return None
     epsilon = 0.1*cv2.arcLength(contours[i],True)
     approx = cv2.approxPolyDP(contours[i],epsilon,True)
     if ( len(approx) != 4  ): #only square objects
@@ -83,8 +86,10 @@ def scaleshow( win, image):
 def doalgo( image):
     #hsv = cv2.cvtColor( image, cv2.COLOR_BGR2HSV)
     #gray = hsv[:,:,2]
-    gray = image[:,:,1]    
-    ret, edges = cv2.threshold(gray, 170, 255,0)
+    t = cv2.cvtColor( image, cv.CV_BayerBG2RGB )
+    gray = t[:,:,1]    
+#    gray = image[:,:,1]    
+    ret, edges = cv2.threshold(gray, 150, 255,0)
     contours, hierarchy = cv2.findContours( edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     interestingContours = []
     interestingContoursIndex = []
@@ -95,10 +100,12 @@ def doalgo( image):
             interestingContoursIndex.append(i)
     subcontours = []
     i = 0
+    cv2.drawContours(t, contours, -1, (0,0,0), 3)
     for contour in interestingContours:
         processContour(contour, gray, contours)
         i=i+1
-    cv2.drawContours(image, interestingContours, -1, (0,255,0), 3)
+    cv2.drawContours(t, interestingContours, -1, (255,255,255), 3)
+    scaleshow("interesting", t)
     return edges
 
 if __name__ == "__main__":
@@ -123,7 +130,7 @@ if __name__ == "__main__":
         if ( capture and capture.isOpened() ):
             ret, image = capture.read( )
         else:
-            image = cv2.imread( sys.argv[1] )
+            image = cv2.imread( sys.argv[1], 0 )
             ret = image is not None 
 
         if( ret ):
