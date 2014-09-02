@@ -43,7 +43,6 @@ def processContour( contour, gray, contours):
     print "Rotated:", rr
     rmat = cv2.getRotationMatrix2D( rr[0], rr[2], 1.0)
     rgray = gray#[rr[0][1]-(rr[1][1]/2):rr[0][1]+(rr[1][1]/2),rr[0][0]-(rr[1][0]/2):rr[0][0]+(rr[1][0]/2)]
-#    cv2.drawContours(gray, contour, -1, (128,128,128), 3)        
     rimg = cv2.warpAffine(rgray, rmat, rgray.shape[0:2], flags=cv2.INTER_CUBIC)
     rimg = rimg[rr[0][1]-(rr[1][1]/2):rr[0][1]+(rr[1][1]/2),rr[0][0]-(rr[1][0]/2):rr[0][0]+(rr[1][0]/2)]
     if ( (rimg.shape[0] is 0) or (rimg.shape[1] is 0) ):
@@ -58,19 +57,28 @@ def processContour( contour, gray, contours):
         ocrContour(rimg)
     return None
 
-def filterContour( i, contours, hierarchy):
+def filterContour( i, contours, hierarchy, image):
     minArea = 2.75*1.25 # minimum area in inches
-    ppi = 200.
-#    if hierarchy[i][3] != -1 : #only parent objects
-#        return None
-    epsilon = 0.1*cv2.arcLength(contours[i],True)
-    approx = cv2.approxPolyDP(contours[i],epsilon,True)
+    ppi = 400.
+    epsilon = 0.05*cv2.arcLength(contours[i],True)
+#    approx = cv2.approxPolyDP(contours[i],epsilon,True)
+    approx = cv2.convexHull(contours[i],None,True, True)
+    if ( abs(cv2.contourArea(approx) - cv2.contourArea(contours[i])) > ppi*minArea ):
+        cv2.imwrite("test%d.tif"%i, image)
+#        print "approx: ", approx, " orig: ", contours[i]
+    if hierarchy[i][2] != -1 : #only parent objects
+        cv2.drawContours(image, approx, -1, (0,75,255), 3)
+        return None
+    scaleshow("approx", image)        
     if ( len(approx) != 4  ): #only square objects
+        cv2.drawContours(image, approx, -1, (0,150,255), 3)
         return None
     if ( cv2.isContourConvex(approx) is False ): #That are closed
+        cv2.drawContours(image, approx, -1, (0,225,255), 3)
         return None
     area = cv2.contourArea(approx)
     if area < (minArea*ppi*.9): #only large enough objects
+        cv2.drawContours(image, approx, -1, (0,255,255), 3)
         return None
     return(approx)
 
@@ -91,21 +99,22 @@ def doalgo( image):
 #    gray = image[:,:,1]    
     ret, edges = cv2.threshold(gray, 150, 255,0)
     contours, hierarchy = cv2.findContours( edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    cv2.drawContours(t, contours, -1, (0,0,0), 3)
     interestingContours = []
     interestingContoursIndex = []
     for i in xrange(len(contours)):
-        adjustedContour = filterContour(i, contours, hierarchy[0])
+        adjustedContour = filterContour(i, contours, hierarchy[0], t)
         if adjustedContour is not None:
             interestingContours.append(adjustedContour)
             interestingContoursIndex.append(i)
     subcontours = []
     i = 0
-    cv2.drawContours(t, contours, -1, (0,0,0), 3)
     for contour in interestingContours:
         processContour(contour, gray, contours)
         i=i+1
     cv2.drawContours(t, interestingContours, -1, (255,255,255), 3)
     scaleshow("interesting", t)
+    cv2.imwrite("interesting%d.tif"%i, t)
     return edges
 
 if __name__ == "__main__":
@@ -140,7 +149,8 @@ if __name__ == "__main__":
             if( algoimage is not None ):
                 scaleshow( "Algo", algoimage )
                 del algoimage
-                wait = 1000
+            if ( capture is None):
+                wait = 2000
             if( cv2.waitKey(wait) == 27 ):
                 break
             del image
