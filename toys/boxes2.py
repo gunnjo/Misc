@@ -44,7 +44,8 @@ def processContour( contour, gray, contours):
     rmat = cv2.getRotationMatrix2D( rr[0], rr[2], 1.0)
     rgray = gray#[rr[0][1]-(rr[1][1]/2):rr[0][1]+(rr[1][1]/2),rr[0][0]-(rr[1][0]/2):rr[0][0]+(rr[1][0]/2)]
     rimg = cv2.warpAffine(rgray, rmat, rgray.shape[0:2], flags=cv2.INTER_CUBIC)
-    rimg = rimg[rr[0][1]-(rr[1][1]/2):rr[0][1]+(rr[1][1]/2),rr[0][0]-(rr[1][0]/2):rr[0][0]+(rr[1][0]/2)]
+    rimg = rimg[rr[0][0]-(rr[1][0]/2):rr[0][0]+(rr[1][0]/2),rr[0][1]-(rr[1][1]/2):rr[0][1]+(rr[1][1]/2)]
+    print "shape: ",rimg.shape
     if ( (rimg.shape[0] is 0) or (rimg.shape[1] is 0) ):
         print "empty shape"
     else:
@@ -60,26 +61,27 @@ def processContour( contour, gray, contours):
 def filterContour( i, contours, hierarchy, image):
     minArea = 2.75*1.25 # minimum area in inches
     ppi = 400.
-    epsilon = 0.05*cv2.arcLength(contours[i],True)
-#    approx = cv2.approxPolyDP(contours[i],epsilon,True)
-    approx = cv2.convexHull(contours[i],None,True, True)
-    if ( abs(cv2.contourArea(approx) - cv2.contourArea(contours[i])) > ppi*minArea ):
-        cv2.imwrite("test%d.tif"%i, image)
+    epsilon = 0.1*cv2.arcLength(contours[i],True)
+    approx = cv2.approxPolyDP(contours[i],epsilon,True)
+#    approx = cv2.convexHull(contours[i],None,True, True)
+#    if ( abs(cv2.contourArea(approx) - cv2.contourArea(contours[i])) > ppi*minArea ):
+#        cv2.imwrite("test%d.tif"%i, image)
 #        print "approx: ", approx, " orig: ", contours[i]
-    if hierarchy[i][2] != -1 : #only parent objects
-        cv2.drawContours(image, approx, -1, (0,75,255), 3)
+    if hierarchy[i][2] == -1 : #only parent objects
+        cv2.drawContours(image, contours[i], -1, (0,75,255), 3)
         return None
     scaleshow("approx", image)        
-    if ( len(approx) != 4  ): #only square objects
-        cv2.drawContours(image, approx, -1, (0,150,255), 3)
+#    if ( len(approx) != 4  ): #only square objects
+#        cv2.drawContours(image, contours[i], -1, (0,150,255), 3)
+#        return None
+#    if ( cv2.isContourConvex(approx) is False ): #That are closed
+#        cv2.drawContours(image, contours[i], -1, (0,225,255), 3)
+#        return None
+    area = cv2.contourArea(contours[i])
+    if (area/ppi) < (minArea*0.9): #only large enough objects
+        cv2.drawContours(image, contours[i], -1, (0,255,255), 3)
         return None
-    if ( cv2.isContourConvex(approx) is False ): #That are closed
-        cv2.drawContours(image, approx, -1, (0,225,255), 3)
-        return None
-    area = cv2.contourArea(approx)
-    if area < (minArea*ppi*.9): #only large enough objects
-        cv2.drawContours(image, approx, -1, (0,255,255), 3)
-        return None
+    print "Approx!: ", approx
     return(approx)
 
 def scaleshow( win, image):
@@ -94,16 +96,15 @@ def scaleshow( win, image):
 def doalgo( image):
     #hsv = cv2.cvtColor( image, cv2.COLOR_BGR2HSV)
     #gray = hsv[:,:,2]
-    t = cv2.cvtColor( image, cv.CV_BayerBG2RGB )
-    gray = t[:,:,1]    
-#    gray = image[:,:,1]    
-    ret, edges = cv2.threshold(gray, 150, 255,0)
+    gray = image[:,:,1]
+#    gray = cv2.GaussianBlur(gray, (5, 5), 0)    
+    ret, edges = cv2.threshold(gray,190, 255,0)
     contours, hierarchy = cv2.findContours( edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    cv2.drawContours(t, contours, -1, (0,0,0), 3)
+    cv2.drawContours(image, contours, -1, (0,0,0), 3)
     interestingContours = []
     interestingContoursIndex = []
     for i in xrange(len(contours)):
-        adjustedContour = filterContour(i, contours, hierarchy[0], t)
+        adjustedContour = filterContour(i, contours, hierarchy[0], image)
         if adjustedContour is not None:
             interestingContours.append(adjustedContour)
             interestingContoursIndex.append(i)
@@ -112,9 +113,9 @@ def doalgo( image):
     for contour in interestingContours:
         processContour(contour, gray, contours)
         i=i+1
-    cv2.drawContours(t, interestingContours, -1, (255,255,255), 3)
-    scaleshow("interesting", t)
-    cv2.imwrite("interesting%d.tif"%i, t)
+    cv2.drawContours(image, interestingContours, -1, (255,0,0), 3)
+    scaleshow("interesting", image)
+    cv2.imwrite("interesting%d.tif"%i, image)
     return edges
 
 if __name__ == "__main__":
@@ -139,7 +140,7 @@ if __name__ == "__main__":
         if ( capture and capture.isOpened() ):
             ret, image = capture.read( )
         else:
-            image = cv2.imread( sys.argv[1], 0 )
+            image = cv2.imread( sys.argv[1] )
             ret = image is not None 
 
         if( ret ):
@@ -150,7 +151,7 @@ if __name__ == "__main__":
                 scaleshow( "Algo", algoimage )
                 del algoimage
             if ( capture is None):
-                wait = 2000
+                wait = 0
             if( cv2.waitKey(wait) == 27 ):
                 break
             del image
