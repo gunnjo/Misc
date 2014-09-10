@@ -25,14 +25,16 @@ def scaleshow( win, image):
 
 if __name__ == "__main__":
     capture = None 
-    image = None 
+    image = None
+    base = 'capture'
 
     if len(sys.argv)==1:
         capture = cv2.VideoCapture( 0 )
     elif len(sys.argv)==2 and sys.argv[1].isdigit():
         capture = cv2.VideoCapture( int(sys.argv[1]) )
     elif len(sys.argv)==2:
-        image = cv2.imread( sys.argv[1] ) 
+        image = cv2.imread( sys.argv[1] )
+        base,_ = os.path.splitext(sys.argv[1]) 
 
     if  (image is None) and not capture.isOpened():
         print "Could not initialize capturing..."
@@ -54,7 +56,7 @@ if __name__ == "__main__":
             scaleshow( "Camera", image )
             if( algoimage.any() ):
                 scaleshow( "Algo", algoimage )
-                cv2.imwrite( "Converted.png", algoimage)
+                cv2.imwrite( base + "-Converted.png", algoimage)
                 del algoimage
                 wait = 1000
             if( cv2.waitKey(wait) == 27 ):
