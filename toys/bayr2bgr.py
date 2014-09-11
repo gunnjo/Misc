@@ -9,7 +9,7 @@ import cv2.cv as cv
 global mem
 
 def doalgo( image):
-    t = cv2.cvtColor( image, cv.CV_BayerBG2RGB )
+    t = cv2.cvtColor( image, cv.CV_BayerBG2BGR )
     scaleshow("BG", t[:,:,1])    
 
     return t
