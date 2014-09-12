@@ -4,7 +4,6 @@ import sys, subprocess
 import os.path
 import numpy as np
 import cv2
-import cv2.cv as cv
 import zbar
 
 global mem
