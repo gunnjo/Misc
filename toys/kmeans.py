@@ -42,12 +42,13 @@ if __name__ == '__main__':
     scaleshow('Orig', image)
     b,g,r  = cv2.split(image)
     rows, cols, layers =  image.shape
-    points = (np.float32(g)+np.float32(r))/2.
+#    points = (np.float32(g)+np.float32(r))/2.
+    points = (np.float32(g)+np.float32(r)+np.float32(b))/3.
     scaleshow('Gray', np.uint8(points))
 #    points = np.float32(image)
 
     term_crit = (cv2.TERM_CRITERIA_EPS, 30, 0.1)
-    ret, labels, centers = cv2.kmeans(points, cluster_n, None, term_crit, 10, 0)
+    ret, labels, centers = cv2.kmeans(points, cluster_n, term_crit, 10, 0)
 
     print labels
     print centers
@@ -56,5 +57,6 @@ if __name__ == '__main__':
     res = centers[labels.flatten()]
     img2 = res.reshape(points.shape)
     scaleshow('Result', img2)
+    cv2.imwrite("output.tiff", img2)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
