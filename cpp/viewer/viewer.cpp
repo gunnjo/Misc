@@ -30,6 +30,10 @@ const char* liveCaptureHelp =
         "  's' - capture image\n"
         "  '-' - zoom out\n"
         "  '+' - zoom in\n"
+        "  'i' - zoom window in\n"
+        "  'o' - zoom window out\n"
+        "  'u' - shift window up\n"
+        "  'd' - shift window down\n"
         "  'l' - shift left\n"        
         "  'r' - shift right\n";
 
