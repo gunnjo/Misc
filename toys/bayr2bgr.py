@@ -4,12 +4,11 @@ import sys, subprocess
 import os.path
 import numpy as np
 import cv2
-import cv2.cv as cv
 
 global mem
 
 def doalgo( image):
-    t = cv2.cvtColor( image, cv.CV_BayerBG2BGR )
+    t = cv2.cvtColor( image, cv2.COLOR_BayerRG2BGR )
     scaleshow("BG", t[:,:,1])    
 
     return t
@@ -37,31 +36,29 @@ if __name__ == "__main__":
         base,_ = os.path.splitext(sys.argv[1]) 
 
     if  (image is None) and not capture.isOpened():
-        print "Could not initialize capturing..."
+        print("Could not initialize capturing...")
         sys.exit(-1)
        
     cv2.namedWindow( "Camera", 1 )
     cv2.namedWindow( "Algo", 1 )
 
-    while True:
-        if ( capture and capture.isOpened() ):
-            ret, image = capture.read( )
-        else:
-            image = cv2.imread( sys.argv[1], 0 )
-            ret = image is not None 
+    if ( capture and capture.isOpened() ):
+        ret, image = capture.read( )
+    else:
+        image = cv2.imread( sys.argv[1], 0 )
+        ret = image is not None 
 
-        if( ret ):
-            wait = 1
-            algoimage=doalgo( image)
-            scaleshow( "Camera", image )
-            if( algoimage.any() ):
-                scaleshow( "Algo", algoimage )
-                cv2.imwrite( base + "-Converted.png", algoimage)
-                del algoimage
-                wait = 1000
-            if( cv2.waitKey(wait) == 27 ):
-                break
-        del image
+    if( ret ):
+        wait = 1
+        algoimage=doalgo( image)
+        scaleshow( "Camera", image )
+        if( algoimage.any() ):
+            scaleshow( "Algo", algoimage )
+            cv2.imwrite( base + "-Converted.png", algoimage)
+            del algoimage
+            #wait = 1000
+        cv2.waitKey(wait)
+    del image
     cv2.destroyWindow( "Camera" )
     cv2.destroyWindow( "Algo" )
 # vi:ai:ts=4:sw=4:et:syntax:
